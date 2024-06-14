@@ -1,0 +1,58 @@
+import groovy.json.JsonBuilder
+
+ext {
+    erp = [
+            test: [
+                    "APP_NAME" : "erp",
+                    "FACE_TYPE": "1",
+                    "ENV_NAME" : "test",
+                    "CODE"     : 1,
+            ],
+            prod: [
+                    "APP_NAME" : "erp",
+                    "FACE_TYPE": "2",
+                    "NAME"     : "prod",
+                    "CODE"     : 2,
+            ],
+
+    ]
+    canteen = [
+            test: [
+                    "APP_NAME" : "canteen",
+                    "FACE_TYPE": "1",
+                    "ENV_NAME" : "test",
+                    "CODE"     : 1,
+            ],
+            prod: [
+                    "APP_NAME" : "canteen",
+                    "FACE_TYPE": "2",
+                    "NAME"     : "prod",
+                    "CODE"     : 2,
+            ],
+
+    ]
+
+    runEnv = erp.prod
+    globalRunEnv = runEnv
+    def pName = project.ext.globalRunEnv["APP_NAME"]
+    globalAppName = pName
+
+//    def pModules = project.ext.globalRunEnv["MODULES"]
+//    globalPModules = pModules
+//
+    globalModules = ['FaceMind', 'PrinterMind']
+//
+    globalModulesStrings = ""
+
+}
+
+
+task printModule {
+    doLast {
+        project.ext.globalModules.add('GoodMind')
+        println "==========更新后的 MODULE =======${project.ext.globalModules}=========="
+    }
+}
+
+
+

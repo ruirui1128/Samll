@@ -1,0 +1,13 @@
+{
+    "modules": [
+        "FaceMind",
+        "PrinterMind"
+    ],
+    "env": "test",
+    "applicationId": "com.mind.small",
+    "versionCode": "1",
+    "versionName": "1.0",
+    "logoUrl": "https://pic2.52pk.com/files/allimg/202405/11/240511D5146AEF91DF40558A89B1603D6BB84F.jpg",
+    "appName": "\u5f20\u4e09\u4e30",
+    "h5Url": "http://localhost"
+}

@@ -1,0 +1,238 @@
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import groovy.xml.XmlUtil
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.jetbrains.kotlin.android)
+}
+
+
+android {
+    namespace 'com.mind.small'
+    compileSdk 34
+
+
+    defaultConfig {
+        def file = new File("${project.projectDir}/src/main/assets/configModules.txt")
+        if (file.exists()) {
+            def fileContent = file.text
+            def jsonSlurper = new JsonSlurper()
+            def jsonObject = jsonSlurper.parseText(fileContent)
+            def appId = jsonObject.applicationId
+            def code = jsonObject.versionCode as Integer
+            def name = jsonObject.versionName
+            applicationId appId
+            minSdk 24
+            targetSdk 34
+            versionCode code
+            versionName name
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+            println("======================打包appId:${appId}===versionCode:${code}===versionName:${name}==================================")
+            buildConfigField "String", "VERSION_CODE", "\"${code}\""
+            buildConfigField "String", "VERSION_NAME", "\"${name}\""
+            buildConfigField "String", "APPLICATION_ID", "\"${appId}\""
+        } else {
+            applicationId "com.mind.small"
+            minSdk 24
+            targetSdk 34
+            versionCode 1
+            versionName "1.0"
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        }
+
+
+    }
+
+
+    signingConfigs {
+        release {
+            keyAlias "xiaomi"
+            keyPassword "xiaomi123456"
+            storeFile file('./KEY/sign_app.jks')
+            storePassword 'keystore123456'
+        }
+        debug {
+            keyAlias "xiaomi"
+            keyPassword "xiaomi123456"
+            storeFile file('./KEY/sign_app.jks')
+            storePassword 'keystore123456'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+
+    android.applicationVariants.all { variant ->
+        def file = new File("${project.projectDir}/src/main/assets/configModules.txt")
+        if (file.exists()) {
+            def fileContent = file.text
+            def jsonSlurper = new JsonSlurper()
+            def jsonObject = jsonSlurper.parseText(fileContent)
+            def appName = jsonObject.appName
+            def env = jsonObject.env
+            def versionName = jsonObject.versionName
+            def newApkFileName = "${appName}_${env}_${versionName}.apk"
+            variant.outputs.all {
+                if (variant.buildType.name == 'debug') {
+                    outputFileName = "${newApkFileName}.apk"
+                }
+                if (variant.buildType.name == 'release') {
+                    outputFileName = "${newApkFileName}.apk"
+                }
+            }
+        }
+
+
+    }
+
+
+}
+
+
+def dispatcherDependencies(List<String> list) {
+    if (list != null && !list.isEmpty()) {
+        list.each { moduleName ->
+            println "==========导入了${moduleName}模块============"
+            dependencies {
+                implementation project(":$moduleName")
+            }
+        }
+    }
+}
+
+
+dependencies {
+
+
+    def file = new File("${project.projectDir}/src/main/assets/configModules.txt")
+
+    if (file.exists()) {
+        def fileContent = file.text
+        def jsonSlurper = new JsonSlurper()
+        def jsonObject = jsonSlurper.parseText(fileContent)
+        def modulesList = jsonObject.modules
+        if (modulesList instanceof List) {
+            dispatcherDependencies(modulesList)
+        } else {
+            println "========发生错误 modules 文件不存在========"
+        }
+    } else {
+        println "========发生错误 配置文件不存在========"
+    }
+
+
+    implementation project(':BaseMind')
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.appcompat
+    implementation libs.material
+    implementation libs.androidx.activity
+    implementation libs.androidx.constraintlayout
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.espresso.core
+    implementation libs.gson
+}
+
+//  ./gradlew addModule -Pmodules="FaceMind,PrinterMind" -Penv="test" -PapplicationId="com.mind.small" -PversionCode="1" -PversionName="1.0"  -PappName="张三丰" -Ph5Url="http://localhost" -PlogoUrl="https://pic2.52pk.com/files/allimg/202405/11/240511D5146AEF91DF40558A89B1603D6BB84F.jpg"
+tasks.register('addModule') {
+    doLast {
+
+        try {
+            def joinModules = []
+            def env = project.property("env")
+            def applicationId = project.property("applicationId")
+            def versionCode = project.property("versionCode")
+            def versionName = project.property("versionName")
+            def logoUrl = project.property("logoUrl")
+            def appName = project.property("appName")
+            def h5Url = project.property("h5Url")
+
+
+            try {
+                def stringsXmlFile = file("${projectDir}/src/main/res/values/strings.xml")
+                def xml = new XmlParser().parse(stringsXmlFile)
+                xml.string.find { it.@name == 'app_name' }.value = appName
+                def updatedXml = XmlUtil.serialize(xml)
+                stringsXmlFile.text = updatedXml
+                println("==================app 名称修改成功:${appName}====================")
+            } catch (Exception e) {
+                println("==================app 名称修改异常:${e.getMessage()}====================")
+            }
+
+            try {
+                def destinationPath = "${projectDir}/src/main/res/mipmap-xxhdpi/app_logo.webp"
+                URL url = new URL(logoUrl)
+                File destinationFile = file(destinationPath)
+                destinationFile.parentFile.mkdirs()
+                destinationFile.withOutputStream { outputStream ->
+                    url.openStream().withStream { inputStream -> outputStream << inputStream
+                    }
+                }
+                println("==================icon 下载完成====================")
+            } catch (Exception e) {
+                println("==================icon 下载异常:${e.getMessage()}====================")
+            }
+
+
+            def moduleList = project.property("modules").split(',')
+            moduleList.each { name -> joinModules.add(name)
+            }
+            // 创建包含模块列表和环境参数的 Map
+            def content = [
+                    modules      : joinModules,
+                    env          : env,
+                    applicationId: applicationId,
+                    versionCode  : versionCode,
+                    versionName  : versionName,
+                    logoUrl      : logoUrl,
+                    appName      : appName,
+                    h5Url        : h5Url
+            ]
+            // 将 Map 转换为 JSON 字符串
+            def moduleJson = new JsonBuilder(content).toPrettyString()
+            println("=========module配置脚本内容:${moduleJson}")
+            def file = new File("${project.projectDir}/src/main/assets/configModules.txt")
+            // 如果文件存在，删除文件
+            if (file.exists()) {
+                file.delete()
+            }
+            file.parentFile.mkdirs()
+            file.text = moduleJson
+            println("=========module脚本执行完成=========")
+        } catch (Exception e) {
+            println("===========脚本命令执行异常:${e.getMessage()}=====================")
+        }
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
